@@ -4,14 +4,14 @@ Statische, browserbasierte Auswertung der festen QSO-Daten in `qsos.json`. Die D
 
 ## Berechnung
 
-QSOs werden nach sendender Station und gearbeitetem Rufzeichen gruppiert. Der Kartenbedarf jeder Kombination wird aufgerundet:
+QSOs werden nach sendender Station und gearbeitetem Rufzeichen gruppiert. Der Kartenbedarf je Kombination wird aufgerundet:
 
 `Karten = aufgerundet(QSOs / QSOs je Karte)`
 
-In der Seite ist zwischen 2, 3 und 4 QSOs pro Karte umschaltbar. Filter, Summen, Tabelle und CSV-Export verwenden die ausgewählte Zahl.
+In der Seite kann zwischen 2, 3 und 4 QSOs pro Karte umgeschaltet werden. Filter, Summen, Tabelle und CSV-Export verwenden die gewählte Einstellung.
 
 ## GitHub Pages
 
-Unter **Settings → Pages** als Build- und Deploymentquelle **GitHub Actions** auswählen. Der Workflow veröffentlicht die Dateien im Repository-Root. Danach ist die Seite unter `https://bitkauz.github.io/QSL-Auswertung/` erreichbar.
+Der Workflow `.github/workflows/pages.yml` aktiviert GitHub Pages beim ersten erfolgreichen Lauf und veröffentlicht die Dateien im Repository-Root. Die Seite ist unter [https://bitkauz.github.io/QSL-Auswertung/](https://bitkauz.github.io/QSL-Auswertung/) erreichbar. Jeder Push auf `main` veröffentlicht eine neue Version.
 
-Die Auswertung läuft im Browser und braucht weder Datenbank noch Backend.
+Die Auswertung läuft vollständig im Browser und benötigt weder Datenbank noch Backend.
