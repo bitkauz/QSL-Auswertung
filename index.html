@@ -23,7 +23,8 @@ button:hover{background:var(--brand2)}button.secondary{background:#e9edf2;color:
 footer{max-width:1180px;margin:-28px auto 25px;padding:0 18px;color:var(--muted);font-size:.82rem}
 @media(max-width:900px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:580px){header{padding:24px 18px}.filters{grid-template-columns:1fr 1fr}.filters .wide{grid-column:1/-1}.summaryline{display:block}.cards{gap:9px}.card{padding:14px}.card strong{font-size:1.55rem}}
-@media print{body{background:white;font-size:10pt}header{background:white!important;color:#111;padding:0 0 12px}header p{color:#333}main{max-width:none;margin:0;padding:0}.filters,.actions,footer,.status button{display:none!important}.panel,.card{box-shadow:none;border-color:#bbb}.cards{gap:6px}.card{padding:8px}.card strong{font-size:16pt}th{position:static}.table-wrap{overflow:visible}table{min-width:0;font-size:9pt}th,td{padding:6px}.qso-list details ul{display:none}}
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;margin-top:13px;color:var(--muted);font-size:.9rem}.pager button{min-width:100px}.pager label{display:flex;align-items:center;gap:6px;margin:0}.pager select{width:auto;min-height:36px;padding:5px 8px}
+@media print{body{background:white;font-size:10pt}.pager{display:none!important}header{background:white!important;color:#111;padding:0 0 12px}header p{color:#333}main{max-width:none;margin:0;padding:0}.filters,.actions,footer,.status button{display:none!important}.panel,.card{box-shadow:none;border-color:#bbb}.cards{gap:6px}.card{padding:8px}.card strong{font-size:16pt}th{position:static}.table-wrap{overflow:visible}table{min-width:0;font-size:9pt}th,td{padding:6px}.qso-list details ul{display:none}}
 </style>
 </head>
 <body>
@@ -48,12 +49,12 @@ footer{max-width:1180px;margin:-28px auto 25px;padding:0 18px;color:var(--muted)
 </section>
 <section class="panel">
 <div class="summaryline"><h2>Benötigte Karten je Empfänger</h2><span id="resultCount"></span></div>
-<div class="table-wrap"><table><thead><tr><th>Sendende Station</th><th>Empfänger</th><th class="num">QSOs</th><th class="num">Karten</th><th>QSO-Übersicht (UTC)</th></tr></thead><tbody id="rows"></tbody></table><div class="empty" id="empty" hidden>Für diese Filter gibt es keine QSOs.</div></div>
+<div class="table-wrap"><table><thead><tr><th>Sendende Station</th><th>Empfänger</th><th class="num">QSOs</th><th class="num">Karten</th><th>QSO-Übersicht (UTC)</th></tr></thead><tbody id="rows"></tbody></table><div class="empty" id="empty" hidden>Für diese Filter gibt es keine QSOs.</div></div><div class="pager"><button id="prevPage" class="secondary">Zurück</button><span id="pageInfo"></span><button id="nextPage" class="secondary">Weiter</button><label for="pageSize">Zeilen<select id="pageSize"><option value="50">50</option><option value="100" selected>100</option><option value="250">250</option></select></label></div>
 </section>
 </main><footer>Die Auswertung läuft vollständig im Browser. Kartenbedarf = ⌈QSOs für dasselbe Empfänger-Rufzeichen ÷ ausgewählte QSOs je Karte⌉.</footer>
 <script>
 "use strict";
-let allQsos=[];
+let allQsos=[],currentPage=1;
 const $=id=>document.getElementById(id);
 const safe=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const prettyDate=d=>/^\d{8}$/.test(d||"")?d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8):"";
@@ -66,13 +67,14 @@ function render(){
  const qsos=filtered(), map=new Map();
  for(const q of qsos){const key=q.station+"\u0000"+q.worked;if(!map.has(key))map.set(key,[]);map.get(key).push(q)}
  const groups=[...map.entries()].map(([key,list])=>{list.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));const [station,worked]=key.split("\u0000");return {station,worked,list,cards:Math.ceil(list.length/capacity())}}).sort((a,b)=>a.station.localeCompare(b.station)||a.worked.localeCompare(b.worked));
+ const pageSize=Number($("pageSize").value||100),pageCount=Math.max(1,Math.ceil(groups.length/pageSize));currentPage=Math.min(currentPage,pageCount);const start=(currentPage-1)*pageSize,visible=groups.slice(start,start+pageSize);$("pageInfo").textContent=groups.length?(start+1).toLocaleString("de-DE")+"–"+Math.min(start+pageSize,groups.length).toLocaleString("de-DE")+" von "+groups.length.toLocaleString("de-DE")+" · Seite "+currentPage+"/"+pageCount:"0 Ergebnisse";$("prevPage").disabled=currentPage<=1;$("nextPage").disabled=currentPage>=pageCount;
  $("kpiQsos").textContent=qsos.length.toLocaleString("de-DE");
  $("kpiCards").textContent=groups.reduce((n,g)=>n+g.cards,0).toLocaleString("de-DE");
  $("kpiRecipients").textContent=new Set(groups.map(g=>g.worked)).size.toLocaleString("de-DE");
  $("kpiStations").textContent=new Set(qsos.map(q=>q.station)).size.toLocaleString("de-DE");
  $("resultCount").textContent=groups.length.toLocaleString("de-DE")+" Station/Empfänger-Kombinationen";
  $("empty").hidden=groups.length>0;
- $("rows").innerHTML=groups.map((g,i)=>{const details=g.list.map(q=>"<li>"+safe(prettyDate(q.date))+" "+safe(prettyTime(q.time))+" · "+safe(q.band||"—")+" · "+safe(q.mode||"—")+(q.frequency?" · "+safe(q.frequency):"")+(q.operator?" · Op. "+safe(q.operator):"")+"</li>").join("");return "<tr><td class=\"call\">"+safe(g.station)+"</td><td class=\"call\">"+safe(g.worked)+"</td><td class=\"num\">"+g.list.length+"</td><td class=\"num\"><span class=\"badge\">"+g.cards+" "+(g.cards===1?"Karte":"Karten")+"</span></td><td class=\"qso-list\"><details><summary>"+g.list.length+" QSO"+(g.list.length===1?"":"s")+" anzeigen</summary><ul>"+details+"</ul></details></td></tr>"}).join("");
+ $("rows").innerHTML=visible.map((g,i)=>{const details=g.list.map(q=>"<li>"+safe(prettyDate(q.date))+" "+safe(prettyTime(q.time))+" · "+safe(q.band||"—")+" · "+safe(q.mode||"—")+(q.frequency?" · "+safe(q.frequency):"")+(q.operator?" · Op. "+safe(q.operator):"")+"</li>").join("");return "<tr><td class=\"call\">"+safe(g.station)+"</td><td class=\"call\">"+safe(g.worked)+"</td><td class=\"num\">"+g.list.length+"</td><td class=\"num\"><span class=\"badge\">"+g.cards+" "+(g.cards===1?"Karte":"Karten")+"</span></td><td class=\"qso-list\"><details><summary>"+g.list.length+" QSO"+(g.list.length===1?"":"s")+" anzeigen</summary><ul>"+details+"</ul></details></td></tr>"}).join("");
 }
 function csv(){
  const qsos=filtered(), map=new Map();
@@ -82,7 +84,8 @@ function csv(){
  const quote=x=>'"'+String(x??"").replaceAll('"','""')+'"',blob=new Blob(["\ufeff"+lines.map(r=>r.map(quote).join(";")).join("\r\n")],{type:"text/csv;charset=utf-8"});
  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="qsl-auswertung.csv";a.click();URL.revokeObjectURL(a.href);
 }
-$("station").addEventListener("change",render);$("capacity").addEventListener("change",render);$("search").addEventListener("input",render);$("from").addEventListener("change",render);$("to").addEventListener("change",render);
+function resetPage(){currentPage=1;render()}
+$("station").addEventListener("change",resetPage);$("capacity").addEventListener("change",resetPage);$("search").addEventListener("input",resetPage);$("from").addEventListener("change",resetPage);$("to").addEventListener("change",resetPage);$("pageSize").addEventListener("change",resetPage);$("prevPage").addEventListener("click",()=>{currentPage--;render()});$("nextPage").addEventListener("click",()=>{currentPage++;render()});
 $("csv").addEventListener("click",csv);$("print").addEventListener("click",()=>window.print());
 fetch("./qsos.json").then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(data=>{
  if(!Array.isArray(data))throw new Error("Unerwartetes Datenformat");
