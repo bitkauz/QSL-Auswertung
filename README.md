@@ -12,6 +12,6 @@ In der Seite kann zwischen 2, 3 und 4 QSOs pro Karte umgeschaltet werden. Filter
 
 ## GitHub Pages
 
-Der Workflow `.github/workflows/pages.yml` aktiviert GitHub Pages beim ersten erfolgreichen Lauf und veröffentlicht die Dateien im Repository-Root. Die Seite ist unter [https://bitkauz.github.io/QSL-Auswertung/](https://bitkauz.github.io/QSL-Auswertung/) erreichbar. Jeder Push auf `main` veröffentlicht eine neue Version.
+GitHub Pages veröffentlicht den Repository-Root automatisch bei jedem Push auf `main`. Die Datei `.nojekyll` sorgt dafür, dass die statischen Dateien unverändert ausgeliefert werden.
 
-Die Auswertung läuft vollständig im Browser und benötigt weder Datenbank noch Backend.
+Die Seite ist unter [https://bitkauz.github.io/QSL-Auswertung/](https://bitkauz.github.io/QSL-Auswertung/) erreichbar. Die Auswertung läuft vollständig im Browser und benötigt weder Datenbank noch Backend.
