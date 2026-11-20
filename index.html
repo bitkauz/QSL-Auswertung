@@ -59,7 +59,8 @@ const $=id=>document.getElementById(id);
 const safe=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const prettyDate=d=>/^\d{8}$/.test(d||"")?d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8):"";
 const prettyTime=t=>/^\d{6}$/.test(t||"")?t.slice(0,2)+":"+t.slice(2,4)+":"+t.slice(4,6):"";
-function capacity(){return Number($("capacity").value||4)}\nfunction filtered(){
+function capacity(){return Number($("capacity").value||4)}
+function filtered(){
  const station=$("station").value, needle=$("search").value.trim().toUpperCase(), from=$("from").value.replaceAll("-",""), to=$("to").value.replaceAll("-","");
  return allQsos.filter(q=>(!station||q.station===station)&&(!needle||String(q.worked).toUpperCase().includes(needle))&&(!from||q.date>=from)&&(!to||q.date<=to));
 }
