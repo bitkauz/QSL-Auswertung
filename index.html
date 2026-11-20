@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#8a3345"><title>QSL-Auswertung</title>
+<style>
+:root{color-scheme:light;--ink:#18202b;--muted:#617080;--brand:#8a3345;--brand2:#642534;--line:#e3e8ee;--bg:#f3f5f8;--card:#fff;--green:#176b4b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:linear-gradient(120deg,var(--brand2),var(--brand));color:white;padding:30px max(22px,calc((100% - 1180px)/2)) 26px}
+header .eyebrow{opacity:.8;text-transform:uppercase;letter-spacing:.12em;font-size:.76rem;font-weight:700}
+h1{margin:4px 0 3px;font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.15}header p{margin:8px 0 0;max-width:760px;color:#f4e9eb}
+main{max-width:1180px;margin:24px auto;padding:0 18px 44px}.status{margin:0 0 16px;color:var(--muted);font-size:.9rem}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:20px}.card,.panel{background:var(--card);border:1px solid var(--line);border-radius:13px;box-shadow:0 2px 8px #18202b08}
+.card{padding:17px 18px}.card .label{color:var(--muted);font-size:.85rem}.card strong{display:block;font-size:1.8rem;line-height:1.2;margin-top:5px}.card small{color:var(--muted)}
+.panel{padding:18px;margin-bottom:18px}.panel h2{font-size:1.08rem;margin:0 0 13px}
+.filters{display:grid;grid-template-columns:1.15fr 1.2fr 1fr 1fr auto auto;gap:10px;align-items:end}
+label{display:block;font-size:.8rem;font-weight:650;color:#394655;margin-bottom:4px}input,select,button{font:inherit}
+input,select{width:100%;min-height:40px;border:1px solid #cbd3dd;border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink)}
+button{border:0;border-radius:8px;background:var(--brand);color:white;padding:10px 14px;min-height:40px;font-weight:650;cursor:pointer}
+button:hover{background:var(--brand2)}button.secondary{background:#e9edf2;color:#263443}button.secondary:hover{background:#dce3eb}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.summaryline{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:.9rem;margin:4px 1px 12px}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px}table{border-collapse:collapse;width:100%;min-width:780px;background:white}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:.77rem;text-transform:uppercase;letter-spacing:.05em;color:#566474;background:#f7f8fa;position:sticky;top:0}tbody tr:last-child td{border-bottom:0}td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.call{font-weight:750;letter-spacing:.02em}.badge{display:inline-block;border-radius:20px;background:#f5e9ec;color:var(--brand2);font-weight:700;padding:2px 9px;white-space:nowrap}.qso-list{color:var(--muted);font-size:.84rem}.qso-list details summary{cursor:pointer;color:#465363}.qso-list ul{margin:7px 0 0;padding-left:18px}.qso-list li{margin:2px 0}.empty{padding:30px;text-align:center;color:var(--muted)}
+footer{max-width:1180px;margin:-28px auto 25px;padding:0 18px;color:var(--muted);font-size:.82rem}
+@media(max-width:900px){.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){header{padding:24px 18px}.filters{grid-template-columns:1fr 1fr}.filters .wide{grid-column:1/-1}.summaryline{display:block}.cards{gap:9px}.card{padding:14px}.card strong{font-size:1.55rem}}
+@media print{body{background:white;font-size:10pt}header{background:white!important;color:#111;padding:0 0 12px}header p{color:#333}main{max-width:none;margin:0;padding:0}.filters,.actions,footer,.status button{display:none!important}.panel,.card{box-shadow:none;border-color:#bbb}.cards{gap:6px}.card{padding:8px}.card strong{font-size:16pt}th{position:static}.table-wrap{overflow:visible}table{min-width:0;font-size:9pt}th,td{padding:6px}.qso-list details ul{display:none}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">DM5CB · QSL-Verwaltung</div><h1>QSL-Auswertung</h1><p>Finde heraus, wie viele QSL-Karten für die bestätigten QSOs benötigt werden. Pro gearbeitetem Rufzeichen passen bis zu vier QSOs auf eine Karte.</p></header>
+<main>
+<div id="status" class="status" role="status">Lade QSO-Daten …</div>
+<section class="cards" aria-label="Zusammenfassung">
+<div class="card"><span class="label">QSOs im Filter</span><strong id="kpiQsos">–</strong><small>berücksichtigte Verbindungen</small></div>
+<div class="card"><span class="label">Benötigte QSL-Karten</span><strong id="kpiCards">–</strong><small>aufgerundet je Empfänger</small></div>
+<div class="card"><span class="label">Empfänger</span><strong id="kpiRecipients">–</strong><small>gearbeitete Rufzeichen</small></div>
+<div class="card"><span class="label">Stationen</span><strong id="kpiStations">–</strong><small>sendende Rufzeichen</small></div>
+</section>
+<section class="panel">
+<h2>Auswertung filtern</h2>
+<div class="filters">
+<div><label for="station">Sendende Station</label><select id="station"><option value="">Alle Stationen</option></select></div>
+<div><label for="search">Empfänger suchen</label><input id="search" type="search" placeholder="z. B. DG1HR"></div>
+<div><label for="from">Von (UTC)</label><input id="from" type="date"></div>
+<div><label for="to">Bis (UTC)</label><input id="to" type="date"></div>
+<div class="actions wide"><button id="csv">CSV exportieren</button><button id="print" class="secondary">Drucken / PDF</button></div>
+</div>
+</section>
+<section class="panel">
+<div class="summaryline"><h2>Benötigte Karten je Empfänger</h2><span id="resultCount"></span></div>
+<div class="table-wrap"><table><thead><tr><th>Sendende Station</th><th>Empfänger</th><th class="num">QSOs</th><th class="num">Karten</th><th>QSO-Übersicht (UTC)</th></tr></thead><tbody id="rows"></tbody></table><div class="empty" id="empty" hidden>Für diese Filter gibt es keine QSOs.</div></div>
+</section>
+</main><footer>Die Auswertung läuft vollständig im Browser. Kartenbedarf = ⌈QSOs für dasselbe Empfänger-Rufzeichen ÷ 4⌉.</footer>
+<script>
+"use strict";
+let allQsos=[];
+const $=id=>document.getElementById(id);
+const safe=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const prettyDate=d=>/^\d{8}$/.test(d||"")?d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8):"";
+const prettyTime=t=>/^\d{6}$/.test(t||"")?t.slice(0,2)+":"+t.slice(2,4)+":"+t.slice(4,6):"";
+function filtered(){
+ const station=$("station").value, needle=$("search").value.trim().toUpperCase(), from=$("from").value.replaceAll("-",""), to=$("to").value.replaceAll("-","");
+ return allQsos.filter(q=>(!station||q.station===station)&&(!needle||String(q.worked).toUpperCase().includes(needle))&&(!from||q.date>=from)&&(!to||q.date<=to));
+}
+function render(){
+ const qsos=filtered(), map=new Map();
+ for(const q of qsos){const key=q.station+"\u0000"+q.worked;if(!map.has(key))map.set(key,[]);map.get(key).push(q)}
+ const groups=[...map.entries()].map(([key,list])=>{list.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));const [station,worked]=key.split("\u0000");return {station,worked,list,cards:Math.ceil(list.length/4)}}).sort((a,b)=>a.station.localeCompare(b.station)||a.worked.localeCompare(b.worked));
+ $("kpiQsos").textContent=qsos.length.toLocaleString("de-DE");
+ $("kpiCards").textContent=groups.reduce((n,g)=>n+g.cards,0).toLocaleString("de-DE");
+ $("kpiRecipients").textContent=new Set(groups.map(g=>g.worked)).size.toLocaleString("de-DE");
+ $("kpiStations").textContent=new Set(qsos.map(q=>q.station)).size.toLocaleString("de-DE");
+ $("resultCount").textContent=groups.length.toLocaleString("de-DE")+" Station/Empfänger-Kombinationen";
+ $("empty").hidden=groups.length>0;
+ $("rows").innerHTML=groups.map((g,i)=>{const details=g.list.map(q=>"<li>"+safe(prettyDate(q.date))+" "+safe(prettyTime(q.time))+" · "+safe(q.band||"—")+" · "+safe(q.mode||"—")+(q.frequency?" · "+safe(q.frequency):"")+(q.operator?" · Op. "+safe(q.operator):"")+"</li>").join("");return "<tr><td class=\"call\">"+safe(g.station)+"</td><td class=\"call\">"+safe(g.worked)+"</td><td class=\"num\">"+g.list.length+"</td><td class=\"num\"><span class=\"badge\">"+g.cards+" "+(g.cards===1?"Karte":"Karten")+"</span></td><td class=\"qso-list\"><details><summary>"+g.list.length+" QSO"+(g.list.length===1?"":"s")+" anzeigen</summary><ul>"+details+"</ul></details></td></tr>"}).join("");
+}
+function csv(){
+ const qsos=filtered(), map=new Map();
+ for(const q of qsos){const k=q.station+"\u0000"+q.worked;if(!map.has(k))map.set(k,[]);map.get(k).push(q)}
+ const lines=[["Sendende Station","Empfänger","QSOs","Benötigte Karten","QSO-Daten (UTC)"]];
+ for(const [key,list] of [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){const [station,worked]=key.split("\u0000");const meta=list.map(q=>prettyDate(q.date)+" "+prettyTime(q.time)+" "+q.band+" "+q.mode).join(" | ");lines.push([station,worked,list.length,Math.ceil(list.length/4),meta])}
+ const quote=x=>'"'+String(x??"").replaceAll('"','""')+'"',blob=new Blob(["\ufeff"+lines.map(r=>r.map(quote).join(";")).join("\r\n")],{type:"text/csv;charset=utf-8"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="qsl-auswertung.csv";a.click();URL.revokeObjectURL(a.href);
+}
+$("station").addEventListener("change",render);$("search").addEventListener("input",render);$("from").addEventListener("change",render);$("to").addEventListener("change",render);
+$("csv").addEventListener("click",csv);$("print").addEventListener("click",()=>window.print());
+fetch("./qsos.json").then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(data=>{
+ if(!Array.isArray(data))throw new Error("Unerwartetes Datenformat");
+ allQsos=data;
+ [...new Set(allQsos.map(q=>q.station).filter(Boolean))].sort().forEach(call=>{const o=document.createElement("option");o.value=call;o.textContent=call;$("station").append(o)});
+ $("status").textContent=allQsos.length.toLocaleString("de-DE")+" feste QSOs geladen.";
+ render();
+}).catch(err=>{$("status").textContent="Die QSO-Daten konnten nicht geladen werden ("+err.message+"). Prüfe, dass qsos.json zusammen mit index.html veröffentlicht ist.";});
+</script>
+</body>
+</html>
