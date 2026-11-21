@@ -13,7 +13,7 @@ main{max-width:1180px;margin:24px auto;padding:0 18px 44px}.status{margin:0 0 16
 .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:20px}.card,.panel{background:var(--card);border:1px solid var(--line);border-radius:13px;box-shadow:0 2px 8px #18202b08}
 .card{padding:17px 18px}.card .label{color:var(--muted);font-size:.85rem}.card strong{display:block;font-size:1.8rem;line-height:1.2;margin-top:5px}.card small{color:var(--muted)}
 .panel{padding:18px;margin-bottom:18px}.panel h2{font-size:1.08rem;margin:0 0 13px}
-.filters{display:grid;grid-template-columns:1.1fr 1.1fr .85fr .85fr .8fr auto auto;gap:10px;align-items:end}
+.filters{display:grid;grid-template-columns:1.1fr 1.1fr .85fr .85fr .8fr auto auto;gap:10px;align-items:end}.station-picker{border:1px solid #cbd3dd;border-radius:8px;background:#fff}.station-picker summary{cursor:pointer;padding:9px 10px;font-weight:600}.station-picker-box{padding:8px 10px 10px;border-top:1px solid var(--line)}.station-actions{display:flex;gap:6px;margin-bottom:8px}.station-actions button{min-height:32px;padding:5px 10px;font-size:.82rem}.station-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;max-height:190px;overflow:auto}.station-options label{display:flex;align-items:center;gap:6px;margin:0;font-weight:500;white-space:nowrap}.station-options input{width:auto;min-height:0}
 label{display:block;font-size:.8rem;font-weight:650;color:#394655;margin-bottom:4px}input,select,button{font:inherit}
 input,select{width:100%;min-height:40px;border:1px solid #cbd3dd;border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink)}
 button{border:0;border-radius:8px;background:var(--brand);color:white;padding:10px 14px;min-height:40px;font-weight:650;cursor:pointer}
@@ -28,7 +28,7 @@ footer{max-width:1180px;margin:-28px auto 25px;padding:0 18px;color:var(--muted)
 </style>
 </head>
 <body>
-<header><div class="eyebrow">DM5CB · QSL-Verwaltung</div><h1>QSL-Auswertung</h1><p>Finde heraus, wie viele QSL-Karten für die bestätigten QSOs benötigt werden. Wähle, ob pro Karte zwei, drei oder vier QSOs desselben Empfänger-Rufzeichens zusammengefasst werden.</p></header>
+<header><div class="eyebrow">DM5CB · QSL-Verwaltung</div><h1>QSL-Auswertung</h1><p>Finde heraus, wie viele QSL-Karten für die QSOs benötigt werden. Wähle die sendenden Stationen und gib ein, wie viele QSOs je Karte zusammengefasst werden.</p></header>
 <main>
 <div id="status" class="status" role="status">Lade QSO-Daten …</div>
 <section class="cards" aria-label="Zusammenfassung">
@@ -40,9 +40,9 @@ footer{max-width:1180px;margin:-28px auto 25px;padding:0 18px;color:var(--muted)
 <section class="panel">
 <h2>Auswertung filtern</h2>
 <div class="filters">
-<div><label for="station">Sendende Station</label><select id="station"><option value="">Alle Stationen</option></select></div>
+<div class="station-filter"><label>Sendende Stationen</label><details class="station-picker" id="stationPicker"><summary id="stationSummary">Alle Stationen</summary><div class="station-picker-box"><div class="station-actions"><button type="button" id="selectAllStations" class="secondary">Alle</button><button type="button" id="clearStations" class="secondary">Keine</button></div><div class="station-options" id="stationOptions"></div></div></details><small>Keine Auswahl = alle Stationen</small></div>
 <div><label for="search">Empfänger suchen</label><input id="search" type="search" placeholder="z. B. DG1HR"></div>
-<div><label for="capacity">QSOs je Karte</label><select id="capacity"><option value="2">2 QSOs</option><option value="3">3 QSOs</option><option value="4" selected>4 QSOs</option></select></div><div><label for="from">Von (UTC)</label><input id="from" type="date"></div>
+<div><label for="capacity">QSOs je Karte</label><input id="capacity" type="number" min="1" step="1" value="4" inputmode="numeric" required><small>Positive ganze Zahl</small></div><div><label for="from">Von (UTC)</label><input id="from" type="date"></div>
 <div><label for="to">Bis (UTC)</label><input id="to" type="date"></div>
 <div class="actions wide"><button id="csv">CSV exportieren</button><button id="print" class="secondary">Drucken / PDF</button></div>
 </div>
@@ -59,10 +59,12 @@ const $=id=>document.getElementById(id);
 const safe=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const prettyDate=d=>/^\d{8}$/.test(d||"")?d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8):"";
 const prettyTime=t=>/^\d{6}$/.test(t||"")?t.slice(0,2)+":"+t.slice(2,4)+":"+t.slice(4,6):"";
-function capacity(){return Number($("capacity").value||4)}
+function capacity(){const n=Number($("capacity").value);return Number.isInteger(n)&&n>=1?n:4}
+function selectedStations(){return new Set([...document.querySelectorAll("#stationOptions input:checked")].map(input=>input.value))}
+function updateStationSummary(){const n=selectedStations().size;$("stationSummary").textContent=n?n+" Station"+(n===1?" ausgewählt":"en ausgewählt"):"Alle Stationen"}
 function filtered(){
- const station=$("station").value, needle=$("search").value.trim().toUpperCase(), from=$("from").value.replaceAll("-",""), to=$("to").value.replaceAll("-","");
- return allQsos.filter(q=>(!station||q.station===station)&&(!needle||String(q.worked).toUpperCase().includes(needle))&&(!from||q.date>=from)&&(!to||q.date<=to));
+ const stations=selectedStations(), needle=$("search").value.trim().toUpperCase(), from=$("from").value.replaceAll("-",""), to=$("to").value.replaceAll("-","");
+ return allQsos.filter(q=>(!stations.size||stations.has(q.station))&&(!needle||String(q.worked).toUpperCase().includes(needle))&&(!from||q.date>=from)&&(!to||q.date<=to));
 }
 function render(){
  const qsos=filtered(), map=new Map();
@@ -86,12 +88,12 @@ function csv(){
  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="qsl-auswertung.csv";a.click();URL.revokeObjectURL(a.href);
 }
 function resetPage(){currentPage=1;render()}
-$("station").addEventListener("change",resetPage);$("capacity").addEventListener("change",resetPage);$("search").addEventListener("input",resetPage);$("from").addEventListener("change",resetPage);$("to").addEventListener("change",resetPage);$("pageSize").addEventListener("change",resetPage);$("prevPage").addEventListener("click",()=>{currentPage--;render()});$("nextPage").addEventListener("click",()=>{currentPage++;render()});
+$("stationOptions").addEventListener("change",()=>{updateStationSummary();resetPage()});$("selectAllStations").addEventListener("click",()=>{document.querySelectorAll("#stationOptions input").forEach(input=>input.checked=true);updateStationSummary();resetPage()});$("clearStations").addEventListener("click",()=>{document.querySelectorAll("#stationOptions input").forEach(input=>input.checked=false);updateStationSummary();resetPage()});$("capacity").addEventListener("input",()=>{const n=Number($("capacity").value);if(Number.isInteger(n)&&n>=1)resetPage()});$("capacity").addEventListener("change",()=>{const input=$("capacity"),n=Number(input.value);if(!Number.isInteger(n)||n<1)input.value="4";resetPage()});$("search").addEventListener("input",resetPage);$("from").addEventListener("change",resetPage);$("to").addEventListener("change",resetPage);$("pageSize").addEventListener("change",resetPage);$("prevPage").addEventListener("click",()=>{currentPage--;render()});$("nextPage").addEventListener("click",()=>{currentPage++;render()});
 $("csv").addEventListener("click",csv);$("print").addEventListener("click",()=>window.print());
 fetch("./qsos.json").then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(data=>{
  if(!Array.isArray(data))throw new Error("Unerwartetes Datenformat");
  allQsos=data;
- [...new Set(allQsos.map(q=>q.station).filter(Boolean))].sort().forEach(call=>{const o=document.createElement("option");o.value=call;o.textContent=call;$("station").append(o)});
+ [...new Set(allQsos.map(q=>q.station).filter(Boolean))].sort().forEach((call,index)=>{const label=document.createElement("label"),input=document.createElement("input");input.type="checkbox";input.value=call;input.id="station-"+index;label.htmlFor=input.id;label.append(input,document.createTextNode(" "+call));$("stationOptions").append(label)});updateStationSummary();
  $("status").textContent=allQsos.length.toLocaleString("de-DE")+" feste QSOs geladen.";
  render();
 }).catch(err=>{$("status").textContent="Die QSO-Daten konnten nicht geladen werden ("+err.message+"). Prüfe, dass qsos.json zusammen mit index.html veröffentlicht ist.";});
